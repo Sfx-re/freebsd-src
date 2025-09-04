@@ -242,7 +242,7 @@ copy_satopfaddr(struct pf_addr *pfa, struct sockaddr *sa)
 const struct icmptypeent *
 geticmptypebynumber(u_int8_t type, sa_family_t af)
 {
-	unsigned int	i;
+	size_t	i;
 
 	if (af != AF_INET6) {
 		for (i=0; i < nitems(icmp_type); i++) {
@@ -261,7 +261,7 @@ geticmptypebynumber(u_int8_t type, sa_family_t af)
 const struct icmptypeent *
 geticmptypebyname(char *w, sa_family_t af)
 {
-	unsigned int	i;
+	size_t	i;
 
 	if (af != AF_INET6) {
 		for (i=0; i < nitems(icmp_type); i++) {
@@ -280,7 +280,7 @@ geticmptypebyname(char *w, sa_family_t af)
 const struct icmpcodeent *
 geticmpcodebynumber(u_int8_t type, u_int8_t code, sa_family_t af)
 {
-	unsigned int	i;
+	size_t	i;
 
 	if (af != AF_INET6) {
 		for (i=0; i < nitems(icmp_code); i++) {
@@ -301,7 +301,7 @@ geticmpcodebynumber(u_int8_t type, u_int8_t code, sa_family_t af)
 const struct icmpcodeent *
 geticmpcodebyname(u_long type, char *w, sa_family_t af)
 {
-	unsigned int	i;
+	size_t	i;
 
 	if (af != AF_INET6) {
 		for (i=0; i < nitems(icmp_code); i++) {
@@ -508,6 +508,8 @@ print_pool(struct pfctl_pool *pool, u_int16_t p1, u_int16_t p2, int id)
 	if (pool->mape.offset > 0)
 		printf(" map-e-portset %u/%u/%u",
 		    pool->mape.offset, pool->mape.psidlen, pool->mape.psid);
+	if (pool->opts & PF_POOL_IPV6NH)
+		printf(" prefer-ipv6-nexthop");
 }
 
 void
@@ -1438,7 +1440,7 @@ ifa_add_groups_to_map(char *ifa_name)
 			ENTRY	 		 item;
 			ENTRY			*ret_item;
 			int			*answer;
-	
+
 			item.key = ifg->ifgrq_group;
 			if (hsearch_r(item, FIND, &ret_item, &isgroup_map) == 0) {
 				struct ifgroupreq	 ifgr2;
@@ -1580,7 +1582,7 @@ is_a_group(char *name)
 {
 	ENTRY	 		 item;
 	ENTRY			*ret_item;
-	
+
 	item.key = name;
 	if (hsearch_r(item, FIND, &ret_item, &isgroup_map) == 0)
 		return (0);
