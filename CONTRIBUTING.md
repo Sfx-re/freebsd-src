@@ -1,6 +1,6 @@
 # Contribution Guidelines for GitHub
 
-## General Contributions to FreeBSD
+## General Contributions to Vidllrwin
 
 Please read the guidelines in [Contributing to FreeBSD](https://docs.freebsd.org/en/articles/contributing/)
 for all the ways you can contribute to the project, how the project is organized,
