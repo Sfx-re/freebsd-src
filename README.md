@@ -1,8 +1,8 @@
 Vidllrwin Source:
 ---------------
-This is the top level of the FreeBSD source directory.
+This is the top level of the Vidllrwin source directory.
 
-FreeBSD is an operating system used to power modern servers, desktops, and embedded platforms.
+Vidllrwin is an operating system used to power modern servers, desktops, and embedded platforms.
 A large community has continually developed it for more than thirty years.
 Its advanced networking, security, and storage features have made FreeBSD the platform of choice for many of the busiest web sites and most pervasive embedded networking and storage devices.
 
