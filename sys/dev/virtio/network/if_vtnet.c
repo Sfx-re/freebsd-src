@@ -133,12 +133,14 @@ static int	vtnet_rxq_replace_lro_nomrg_buf(struct vtnet_rxq *,
 static int	vtnet_rxq_replace_buf(struct vtnet_rxq *, struct mbuf *, int);
 static int	vtnet_rxq_enqueue_buf(struct vtnet_rxq *, struct mbuf *);
 static int	vtnet_rxq_new_buf(struct vtnet_rxq *);
+#if defined(INET) || defined(INET6)
 static int	vtnet_rxq_csum_needs_csum(struct vtnet_rxq *, struct mbuf *,
 		     bool, int, struct virtio_net_hdr *);
 static void	vtnet_rxq_csum_data_valid(struct vtnet_rxq *, struct mbuf *,
 		    int);
 static int	vtnet_rxq_csum(struct vtnet_rxq *, struct mbuf *,
 		     struct virtio_net_hdr *);
+#endif
 static void	vtnet_rxq_discard_merged_bufs(struct vtnet_rxq *, int);
 static void	vtnet_rxq_discard_buf(struct vtnet_rxq *, struct mbuf *);
 static int	vtnet_rxq_merged_eof(struct vtnet_rxq *, struct mbuf *, int);
@@ -1151,11 +1153,9 @@ vtnet_setup_interface(struct vtnet_softc *sc)
 	}
 
 	if (virtio_with_feature(dev, VIRTIO_NET_F_GUEST_CSUM)) {
-		if_setcapabilitiesbit(ifp, IFCAP_RXCSUM, 0);
-#ifdef notyet
 		/* BMV: Rx checksums not distinguished between IPv4 and IPv6. */
+		if_setcapabilitiesbit(ifp, IFCAP_RXCSUM, 0);
 		if_setcapabilitiesbit(ifp, IFCAP_RXCSUM_IPV6, 0);
-#endif
 
 		if (vtnet_tunable_int(sc, "fixup_needs_csum",
 		    vtnet_fixup_needs_csum) != 0)
@@ -1178,6 +1178,7 @@ vtnet_setup_interface(struct vtnet_softc *sc)
 	if (sc->vtnet_max_mtu >= ETHERMTU_JUMBO)
 		if_setcapabilitiesbit(ifp, IFCAP_JUMBO_MTU, 0);
 	if_setcapabilitiesbit(ifp, IFCAP_VLAN_MTU, 0);
+	if_setcapabilitiesbit(ifp, IFCAP_HWSTATS, 0);
 
 	/*
 	 * Capabilities after here are not enabled by default.
@@ -1367,27 +1368,20 @@ vtnet_ioctl_ifcap(struct vtnet_softc *sc, struct ifreq *ifr)
 		if ((mask & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6 | IFCAP_LRO)) ==
 		    IFCAP_LRO && vtnet_software_lro(sc))
 			reinit = update = 0;
-
-		if (mask & IFCAP_RXCSUM)
+		/*
+		 * VirtIO does not distinguish between receive checksum offload
+		 * for IPv4 and IPv6 packets, so treat them as a pair.
+		 */
+		if (mask & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6)) {
 			if_togglecapenable(ifp, IFCAP_RXCSUM);
-		if (mask & IFCAP_RXCSUM_IPV6)
 			if_togglecapenable(ifp, IFCAP_RXCSUM_IPV6);
+		}
 		if (mask & IFCAP_LRO)
 			if_togglecapenable(ifp, IFCAP_LRO);
-
-		/*
-		 * VirtIO does not distinguish between IPv4 and IPv6 checksums
-		 * so treat them as a pair. Guest TSO (LRO) requires receive
-		 * checksums.
-		 */
-		if (if_getcapenable(ifp) & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6)) {
-			if_setcapenablebit(ifp, IFCAP_RXCSUM, 0);
-#ifdef notyet
-			if_setcapenablebit(ifp, IFCAP_RXCSUM_IPV6, 0);
-#endif
-		} else
-			if_setcapenablebit(ifp, 0,
-			    (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6 | IFCAP_LRO));
+		/* Both SW and HW TCP LRO require receive checksum offload. */
+		if ((if_getcapenable(ifp) &
+		    (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6)) == 0)
+			if_setcapenablebit(ifp, 0, IFCAP_LRO);
 	}
 
 	if (mask & IFCAP_VLAN_HWFILTER) {
@@ -1760,6 +1754,7 @@ vtnet_rxq_new_buf(struct vtnet_rxq *rxq)
 	return (error);
 }
 
+#if defined(INET) || defined(INET6)
 static int
 vtnet_rxq_csum_needs_csum(struct vtnet_rxq *rxq, struct mbuf *m, bool isipv6,
     int protocol, struct virtio_net_hdr *hdr)
@@ -1917,6 +1912,7 @@ vtnet_rxq_csum(struct vtnet_rxq *rxq, struct mbuf *m,
 
 	return (0);
 }
+#endif
 
 static void
 vtnet_rxq_discard_merged_bufs(struct vtnet_rxq *rxq, int nbufs)
@@ -2039,10 +2035,15 @@ vtnet_rxq_input(struct vtnet_rxq *rxq, struct mbuf *m,
 
 	if (hdr->flags &
 	    (VIRTIO_NET_HDR_F_NEEDS_CSUM | VIRTIO_NET_HDR_F_DATA_VALID)) {
+#if defined(INET) || defined(INET6)
 		if (vtnet_rxq_csum(rxq, m, hdr) == 0)
 			rxq->vtnrx_stats.vrxs_csum++;
 		else
 			rxq->vtnrx_stats.vrxs_csum_failed++;
+#else
+		sc->vtnet_stats.rx_csum_bad_ethtype++;
+		rxq->vtnrx_stats.vrxs_csum_failed++;
+#endif
 	}
 
 	if (hdr->gso_size != 0) {
@@ -3036,16 +3037,14 @@ vtnet_get_counter(if_t ifp, ift_counter cnt)
 		return (rxaccum.vrxs_iqdrops);
 	case IFCOUNTER_IERRORS:
 		return (rxaccum.vrxs_ierrors);
+	case IFCOUNTER_IBYTES:
+		return (rxaccum.vrxs_ibytes);
 	case IFCOUNTER_OPACKETS:
 		return (txaccum.vtxs_opackets);
 	case IFCOUNTER_OBYTES:
-		if (!VTNET_ALTQ_ENABLED)
-			return (txaccum.vtxs_obytes);
-		/* FALLTHROUGH */
+		return (txaccum.vtxs_obytes);
 	case IFCOUNTER_OMCASTS:
-		if (!VTNET_ALTQ_ENABLED)
-			return (txaccum.vtxs_omcasts);
-		/* FALLTHROUGH */
+		return (txaccum.vtxs_omcasts);
 	default:
 		return (if_get_counter_default(ifp, cnt));
 	}

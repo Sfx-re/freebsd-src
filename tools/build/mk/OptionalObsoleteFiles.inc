@@ -3793,11 +3793,14 @@ OLD_FILES+=usr/share/man/man1/host.1.gz
 .endif
 
 .if ${MK_LEGACY_CONSOLE} == no
+OLD_FILES+=etc/moused.conf
 OLD_FILES+=etc/rc.d/moused
+OLD_FILES+=etc/rc.d/msconvd
 OLD_FILES+=etc/rc.d/syscons
 OLD_FILES+=usr/sbin/kbdcontrol
 OLD_FILES+=usr/sbin/kbdmap
 OLD_FILES+=usr/sbin/moused
+OLD_FILES+=usr/sbin/msconvd
 OLD_FILES+=usr/sbin/vidcontrol
 OLD_FILES+=usr/sbin/vidfont
 OLD_FILES+=usr/share/man/man1/kbdcontrol.1.gz
@@ -3806,7 +3809,11 @@ OLD_FILES+=usr/share/man/man1/vidcontrol.1.gz
 OLD_FILES+=usr/share/man/man1/vidfont.1.gz
 OLD_FILES+=usr/share/man/man5/kbdmap.5.gz
 OLD_FILES+=usr/share/man/man5/keymap.5.gz
+OLD_FILES+=usr/share/man/man5/moused.conf.5.gz
 OLD_FILES+=usr/share/man/man8/moused.8.gz
+OLD_FILES+=usr/share/man/man8/msconvd.8.gz
+OLD_FILES+=usr/share/moused/5-generic-touchpad.quirks
+OLD_DIRS+=usr/share/moused
 .endif
 
 .for LIBCOMPAT libcompat in ${_ALL_LIBCOMPATS_libcompats}
@@ -8196,7 +8203,11 @@ OLD_FILES+=usr/include/atf-c/tc.h
 OLD_FILES+=usr/include/atf-c/tp.h
 OLD_FILES+=usr/include/atf-c/utils.h
 OLD_LIBS+=usr/lib/libprivateatf-c++.so.2
+OLD_FILES+=usr/lib/libprivateatf-c++.so
+OLD_FILES+=usr/lib/libprivateatf-c++.a
 OLD_LIBS+=usr/lib/libprivateatf-c.so.1
+OLD_FILES+=usr/lib/libprivateatf-c.so
+OLD_FILES+=usr/lib/libprivateatf-c.a
 OLD_FILES+=usr/share/examples/kyua/kyua.conf
 OLD_FILES+=usr/share/examples/kyua/Kyuafile.top
 OLD_FILES+=usr/share/kyua/misc/context.html

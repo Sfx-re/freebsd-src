@@ -30,6 +30,7 @@ ATF_TESTS_SH+=	altq \
 		names \
 		nat \
 		nat64 \
+		once \
 		pass_block \
 		pflog \
 		pflow \
@@ -61,6 +62,7 @@ ATF_TESTS_PYTEST+=	header.py
 ATF_TESTS_PYTEST+=	icmp.py
 ATF_TESTS_PYTEST+=	igmp.py
 ATF_TESTS_PYTEST+=	mld.py
+ATF_TESTS_PYTEST+=	nat44.py
 ATF_TESTS_PYTEST+=	nat64.py
 ATF_TESTS_PYTEST+=	nat66.py
 ATF_TESTS_PYTEST+=	return.py
